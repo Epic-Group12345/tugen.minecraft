@@ -1,0 +1,25 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  test:
+    name: tests
+    runs-on: ubuntu-latest
+    # Сторонний setup-nim-action получает GITHUB_TOKEN: только на чтение
+    permissions:
+      contents: read
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v5
+
+      # Та же версия, что у лаунчера: сгенерированный C от неё зависит
+      - uses: jiro4989/setup-nim-action@189b145833368cc92f1e7b3e166a25a3e057a693 # v2.3.1
+        with:
+          nim-version: '2.2.12'
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
+
+      - run: nim r --hints:off tests/tminecraft.nim
