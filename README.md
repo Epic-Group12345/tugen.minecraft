@@ -1,32 +1,34 @@
 # tugen.minecraft
 
-Модуль запуска Minecraft для TUGEN на Nim. Реализует API модулей запуска из
-[tugen.core](https://github.com/Epic-Group12345/tugen.core): какие файлы нужны версии, откуда их скачать,
-как собрать командную строку и запустить игру.
+Мини-приложение Minecraft для TUGEN на React Native: пространство игры внутри окна лаунчера. Пишется
+на [tugen.sdk](https://github.com/Epic-Group12345/tugen.sdk) — тем же SDK, что получат сторонние
+разработчики, — и служит образцом для них.
 
-## Состояние
+С лаунчером общается только через `useHost()` из SDK: файлы своей папки, загрузки, запуск процесса.
+Нативной части у мини-приложения нет: за `GameHost` стоят модули лаунчера и ядро
+[tugen.core](https://github.com/Epic-Group12345/tugen.core).
 
-Каркас. Логика Minecraft пока живёт на TypeScript в лаунчере (`src/services/game` в
-[tugen.launcher](https://github.com/Epic-Group12345/tugen.launcher)) и переезжает сюда по частям:
+## Переезд из лаунчера
 
-| Что                                       | Сейчас в лаунчере          |
-| ----------------------------------------- | -------------------------- |
-| описание версии: библиотеки, аргументы, правила ОС | `version.ts`        |
-| манифест версий Mojang                    | `mojang.ts`                |
-| загрузчики (Fabric, Forge, Quilt, NeoForge) | `loaders.ts`             |
-| Java для версии                           | `java.ts`                  |
-| раскладка папки игры                      | `paths.ts`                 |
-| подготовка и запуск                       | `launch.ts`, `runtime.ts`  |
-| разбор журнала log4j                      | `logs.ts`                  |
-| офлайн-игрок (UUID по нику)               | `offline.ts`               |
+Сейчас здесь заглушка. Логика и экраны Minecraft живут в
+[tugen.launcher](https://github.com/Epic-Group12345/tugen.launcher) и переедут сюда:
 
-Каждый перенос — это нативное изменение лаунчера: до игроков он доходит только с новым релизом, не по
-воздуху.
+| Что                                              | Сейчас в лаунчере                                      |
+| ------------------------------------------------ | ------------------------------------------------------ |
+| сборки: список, создание, настройки              | `services/game/builds.ts`, `settings.ts`, `setup.ts`   |
+| версии Mojang, описание версии, загрузчики, Java | `services/game/mojang.ts`, `version.ts`, `loaders.ts`, `java.ts` |
+| подготовка и запуск, журнал                      | `services/game/launch.ts`, `runtime.ts`, `logs.ts`     |
+| моды и контент сборки, импорт из других лаунчеров | `services/game/content.ts`, `imports.ts`              |
+| офлайн-игрок, раскладка папки                    | `services/game/offline.ts`, `paths.ts`                 |
+| экраны                                           | `pages/builds`, `components/build-*`, `game-controls`, `import-list`  |
+
+Вызовы `native/game` при переезде заменяются на `useHost()`. Это только JS, поэтому до игроков всё
+доходит по воздуху, без нового релиза.
 
 ## Работа
 
-Нужен Nim 2.2.12 (та же версия, что у лаунчера).
-
 ```bash
-nimble test
+yarn install
+yarn typecheck
+yarn test
 ```
