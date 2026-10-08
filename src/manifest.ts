@@ -11,7 +11,11 @@ export const manifest: GameManifest = {
     { id: 'overview', title: { ru: 'Обзор', en: 'Overview' }, icon: 'House' },
     { id: 'servers', title: { ru: 'Серверы', en: 'Servers' }, icon: 'Server' },
     { id: 'builds', title: { ru: 'Сборки', en: 'Builds' }, icon: 'Box' },
-    { id: 'content', title: { ru: 'Контент', en: 'Content' }, icon: 'Circles5Random' },
+    {
+      id: 'content',
+      title: { ru: 'Контент', en: 'Content' },
+      icon: 'Circles5Random',
+    },
     { id: 'skins', title: { ru: 'Скины', en: 'Skins' }, icon: 'Persons' },
   ],
 };
