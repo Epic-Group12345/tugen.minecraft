@@ -5,10 +5,19 @@ export const colors = {
   // Слой поверх поверхности для наведения: состояние — светом, без масштаба и блюра
   hover: 'rgba(252, 255, 255, 0.06)',
   pressed: 'rgba(252, 255, 255, 0.1)',
+  // Поле ввода и дорожка прогресса — чуть светлее поверхности
+  field: 'rgba(252, 255, 255, 0.06)',
   text: '#FCFFFF',
   textSecondary: 'rgba(252, 255, 255, 0.5)',
   accent: '#00EAFF',
+  // Выделенная строка списка выбора — бирюзовый на поверхности
+  accentSoft: 'rgba(0, 234, 255, 0.12)',
+  accentBorder: 'rgba(0, 234, 255, 0.4)',
   onAccent: '#062426',
+  // Ошибки: в палитре лаунчера красного нет — мягкий, чтобы не спорить с бирюзовым
+  danger: '#FF8A8A',
+  dangerBorder: 'rgba(255, 138, 138, 0.6)',
 } as const;
 
-export const radius = { small: 8, large: 12 } as const;
+// rounded-lg, rounded-xl, rounded-2xl из Tailwind
+export const radius = { small: 8, large: 12, xlarge: 16 } as const;

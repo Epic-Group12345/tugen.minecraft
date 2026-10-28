@@ -1,0 +1,253 @@
+import { useEffect, useMemo, useState } from 'react';
+import { StyleSheet, Text, View } from 'react-native';
+import { useCore, useSettings } from '../core/react';
+import { useT } from '../i18n';
+import { Card, Field } from '../ui/controls';
+import { GLOW_CYAN, GLOW_NEUTRAL } from '../ui/glow';
+import { GlowButton, GlowText } from '../ui/glow-button';
+import { colors } from '../ui/theme';
+import { sectionStyles } from './styles';
+
+// Шаг памяти кнопками − и +
+const MEMORY_STEP_MB = 512;
+
+// Настройки Minecraft, переехавшие из лаунчера: ник, память, аргументы JVM, окно игры.
+// Текст сохраняется по завершении ввода (уход из поля или Enter), а не на каждую букву
+export function Settings() {
+  const tr = useT();
+  return (
+    <>
+      <Text style={sectionStyles.heading}>{tr('settings')}</Text>
+      <NicknameCard />
+      <MemoryCard />
+      <JvmArgsCard />
+      <WindowCard />
+    </>
+  );
+}
+
+/** Черновик поля, который сбрасывается, когда значение поменялось извне */
+function useDraft(value: string) {
+  const [draft, setDraft] = useState(value);
+  useEffect(() => setDraft(value), [value]);
+  return [draft, setDraft] as const;
+}
+
+function NicknameCard() {
+  const tr = useT();
+  const core = useCore();
+  const settings = useSettings();
+  const [draft, setDraft] = useDraft(settings.nickname);
+  const valid = core.isValidNickname(draft.trim());
+
+  const save = () => {
+    const nickname = draft.trim();
+    if (core.isValidNickname(nickname) && nickname !== settings.nickname) {
+      core.setSettings({ nickname });
+    }
+  };
+
+  return (
+    <Card>
+      <Field
+        label={tr('nickname')}
+        value={draft}
+        onChangeText={setDraft}
+        onBlur={save}
+        onSubmitEditing={save}
+        error={valid ? null : tr('nicknameInvalid')}
+        maxLength={16}
+        autoCorrect={false}
+        autoCapitalize="none"
+      />
+    </Card>
+  );
+}
+
+function MemoryCard() {
+  const tr = useT();
+  const core = useCore();
+  const settings = useSettings();
+  const range = useMemo(() => core.memoryRange(), [core]);
+  const memory = settings.memoryMb;
+
+  const set = (value: number) => {
+    const next = Math.min(range.max, Math.max(range.min, value));
+    if (next !== memory) {
+      core.setSettings({ memoryMb: next });
+    }
+  };
+
+  return (
+    <Card>
+      <Text style={styles.label}>{tr('memory')}</Text>
+      <View style={styles.memoryRow}>
+        <GlowButton
+          label={tr('memoryLess')}
+          onPress={() => set(memory - MEMORY_STEP_MB)}
+          disabled={memory <= range.min}
+          style={styles.stepper}
+        >
+          <Text style={styles.stepperText}>−</Text>
+        </GlowButton>
+        <Text style={styles.memoryValue}>
+          {memory} {tr('mb')}
+        </Text>
+        <GlowButton
+          label={tr('memoryMore')}
+          onPress={() => set(memory + MEMORY_STEP_MB)}
+          disabled={memory >= range.max}
+          style={styles.stepper}
+        >
+          <Text style={styles.stepperText}>+</Text>
+        </GlowButton>
+        <GlowButton
+          label={tr('recommended')}
+          glow={memory === range.recommended ? GLOW_CYAN : GLOW_NEUTRAL}
+          selected={memory === range.recommended}
+          onPress={() => set(range.recommended)}
+        >
+          <GlowText>{tr('recommended')}</GlowText>
+        </GlowButton>
+      </View>
+      <Text style={sectionStyles.small}>
+        {tr('memoryHint', {
+          min: range.min,
+          max: range.max,
+          recommended: range.recommended,
+        })}
+      </Text>
+    </Card>
+  );
+}
+
+function JvmArgsCard() {
+  const tr = useT();
+  const core = useCore();
+  const settings = useSettings();
+  const [draft, setDraft] = useDraft(settings.jvmArgs);
+
+  const save = () => {
+    const jvmArgs = draft.trim();
+    if (jvmArgs !== settings.jvmArgs) {
+      core.setSettings({ jvmArgs });
+    }
+  };
+
+  return (
+    <Card>
+      <Field
+        label={tr('jvmArgs')}
+        hint={tr('jvmArgsHint')}
+        value={draft}
+        onChangeText={setDraft}
+        onBlur={save}
+        onSubmitEditing={save}
+        autoCorrect={false}
+        autoCapitalize="none"
+        placeholder="-XX:+UseG1GC"
+      />
+    </Card>
+  );
+}
+
+// 0 в настройках — размер выбирает игра; в поле это пустая строка
+const sizeText = (value: number) => (value > 0 ? String(value) : '');
+
+/** Пусто — 0; целое неотрицательное — число; иначе null (ошибка) */
+const parseSize = (text: string): number | null => {
+  const trimmed = text.trim();
+  if (trimmed === '') {
+    return 0;
+  }
+  return /^\d{1,5}$/.test(trimmed) ? Number(trimmed) : null;
+};
+
+function WindowCard() {
+  const tr = useT();
+  const core = useCore();
+  const settings = useSettings();
+  const [width, setWidth] = useDraft(sizeText(settings.windowWidth));
+  const [height, setHeight] = useDraft(sizeText(settings.windowHeight));
+  const widthValue = parseSize(width);
+  const heightValue = parseSize(height);
+
+  const save = () => {
+    const patch: { windowWidth?: number; windowHeight?: number } = {};
+    if (widthValue !== null && widthValue !== settings.windowWidth) {
+      patch.windowWidth = widthValue;
+    }
+    if (heightValue !== null && heightValue !== settings.windowHeight) {
+      patch.windowHeight = heightValue;
+    }
+    if (Object.keys(patch).length > 0) {
+      core.setSettings(patch);
+    }
+  };
+
+  const invalid = widthValue === null || heightValue === null;
+  return (
+    <Card>
+      <Text style={styles.label}>{tr('windowSize')}</Text>
+      <View style={styles.windowRow}>
+        <View style={styles.windowField}>
+          <Field
+            label={tr('windowWidth')}
+            value={width}
+            onChangeText={setWidth}
+            onBlur={save}
+            onSubmitEditing={save}
+            keyboardType="number-pad"
+            placeholder="854"
+            maxLength={5}
+          />
+        </View>
+        <Text style={styles.times}>×</Text>
+        <View style={styles.windowField}>
+          <Field
+            label={tr('windowHeight')}
+            value={height}
+            onChangeText={setHeight}
+            onBlur={save}
+            onSubmitEditing={save}
+            keyboardType="number-pad"
+            placeholder="480"
+            maxLength={5}
+          />
+        </View>
+      </View>
+      {invalid ? (
+        <Text style={sectionStyles.error}>{tr('windowInvalid')}</Text>
+      ) : (
+        <Text style={sectionStyles.small}>{tr('windowHint')}</Text>
+      )}
+    </Card>
+  );
+}
+
+const styles = StyleSheet.create({
+  label: { fontSize: 12, color: colors.textSecondary },
+  memoryRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flexWrap: 'wrap',
+    gap: 8,
+  },
+  stepper: { minWidth: 32, justifyContent: 'center' },
+  stepperText: {
+    fontSize: 16,
+    lineHeight: 18,
+    textAlign: 'center',
+    color: colors.text,
+  },
+  memoryValue: {
+    minWidth: 96,
+    fontSize: 18,
+    fontWeight: '600',
+    textAlign: 'center',
+    color: colors.text,
+  },
+  windowRow: { flexDirection: 'row', alignItems: 'flex-end', gap: 8 },
+  windowField: { width: 120 },
+  times: { paddingBottom: 8, fontSize: 14, color: colors.textSecondary },
+});

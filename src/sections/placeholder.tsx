@@ -1,6 +1,7 @@
 import { localize, useHost } from '@tugen/sdk';
-import { Text, View } from 'react-native';
+import { Text } from 'react-native';
 import { t, upcoming } from '../i18n';
+import { Card } from '../ui/controls';
 import { sectionStyles as styles } from './styles';
 
 interface PlaceholderProps {
@@ -13,13 +14,13 @@ export function Placeholder({ id, title }: PlaceholderProps) {
   const locale = useHost().system.locale;
   const what = upcoming[id];
   return (
-    <View style={styles.card}>
+    <Card>
       <Text style={styles.heading}>{title}</Text>
       {what && (
         <Text style={styles.body}>
           {t('soon', locale)}: {localize(what, locale)}
         </Text>
       )}
-    </View>
+    </Card>
   );
 }
