@@ -1,15 +1,18 @@
 import type { GameManifest } from '@tugen/sdk';
 
-// Разделы — сервисы издателя: лаунчер ставит их в боковую панель вместо своих кнопок, пока игра
-// открыта, а открытый приходит в App пропом section. Тот же список пока держит лаунчер у себя
-// (src/games/minecraft) — экраны ещё там; при переезде он уйдёт оттуда
-export const manifest: GameManifest = {
+// Разделы — сервисы издателя. Боковой панели в новом лаунчере нет, поэтому строку разделов рисует
+// само мини-приложение (нижний остров, src/ui/island.tsx); лаунчер лишь помнит открытый раздел и передаёт его в App
+// пропом section. Иконки разделов оставлены для лаунчеров, которые их показывают (старый интерфейс)
+export const manifest = {
   id: 'minecraft',
   name: 'Minecraft',
   version: '0.1.0',
+  // Иконка Gravity UI для карточки и островов лаунчера
+  icon: 'Cube',
+  // Рисуемся внутри окна лаунчера, под его островами, а не отдельным окном
+  presentation: 'embedded',
   sections: [
     { id: 'overview', title: { ru: 'Обзор', en: 'Overview' }, icon: 'House' },
-    { id: 'servers', title: { ru: 'Серверы', en: 'Servers' }, icon: 'Server' },
     { id: 'builds', title: { ru: 'Сборки', en: 'Builds' }, icon: 'Box' },
     {
       id: 'content',
@@ -17,5 +20,10 @@ export const manifest: GameManifest = {
       icon: 'Circles5Random',
     },
     { id: 'skins', title: { ru: 'Скины', en: 'Skins' }, icon: 'Persons' },
+    {
+      id: 'settings',
+      title: { ru: 'Настройки', en: 'Settings' },
+      icon: 'Gear',
+    },
   ],
-};
+} as const satisfies GameManifest;
