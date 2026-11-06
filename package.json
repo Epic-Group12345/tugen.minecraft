@@ -16,7 +16,7 @@
   },
   "dependencies": {
     "@noble/hashes": "^2.4.0",
-    "@tugen/sdk": "github:Epic-Group12345/tugen.sdk#77c4c39a06b00166fe6a731ffb43c07d9ca04541"
+    "@tugen/sdk": "github:Epic-Group12345/tugen.sdk#2dfd8de7117b978280a0f7bae8239ebe2361955c"
   },
   "devDependencies": {
     "@types/jest": "^29",
