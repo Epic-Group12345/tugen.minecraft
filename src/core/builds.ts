@@ -31,7 +31,14 @@ export const inForgeRange = (game: string) =>
 
 export class BuildError extends Error {
   constructor(
-    public code: 'version' | 'loader-unsupported' | 'not-found' | 'running',
+    public code:
+      | 'version'
+      | 'name'
+      | 'files'
+      | 'loader-unsupported'
+      | 'not-found'
+      | 'running'
+      | 'copying',
     detail = '',
   ) {
     super(detail || code);
@@ -99,8 +106,14 @@ export const fallbackMain = (builds: readonly Build[]): string | null =>
   )[0]?.id ?? null;
 
 /** Имя без повторов: «Сборка», «Сборка (2)»… */
-export function uniqueName(name: string, builds: readonly Build[]): string {
-  const taken = new Set(builds.map(b => b.name.toLowerCase()));
+export function uniqueName(
+  name: string,
+  builds: readonly Build[],
+  excludeId?: string,
+): string {
+  const taken = new Set(
+    builds.filter(b => b.id !== excludeId).map(b => b.name.toLowerCase()),
+  );
   if (!taken.has(name.toLowerCase())) {
     return name;
   }
@@ -132,6 +145,7 @@ const newId = () =>
 export class BuildRepo {
   builds: readonly Build[];
   mainId: string | null;
+  private copying = new Set<string>();
 
   constructor(private host: GameHost, private onChange: () => void) {
     this.builds = parseBuilds(host.storage.get<unknown>(BUILDS_KEY, []));
@@ -155,8 +169,20 @@ export class BuildRepo {
     this.onChange();
   }
 
+  private nextId(): string {
+    let id = newId();
+    while (this.find(id) || this.host.files.exists(buildRoot(id))) {
+      id = newId();
+    }
+    return id;
+  }
+
   find(id: string): Build | undefined {
     return this.builds.find(b => b.id === id);
+  }
+
+  isCopying(id: string): boolean {
+    return this.copying.has(id);
   }
 
   create(input: {
@@ -171,7 +197,7 @@ export class BuildRepo {
     }
     checkLoader(input.loader, version);
     const build: Build = {
-      id: newId(),
+      id: this.nextId(),
       name: uniqueName(input.name.trim() || version, this.builds),
       version,
       loader: input.loader,
@@ -190,6 +216,77 @@ export class BuildRepo {
   update(id: string, patch: Partial<Omit<Build, 'id'>>): void {
     if (this.find(id)) {
       this.commit(this.builds.map(b => (b.id === id ? { ...b, ...patch } : b)));
+    }
+  }
+
+  rename(id: string, name: string): Build {
+    const build = this.find(id);
+    if (!build) {
+      throw new BuildError('not-found', id);
+    }
+    const trimmed = name.trim();
+    if (!trimmed) {
+      throw new BuildError('name');
+    }
+    const renamed = { ...build, name: uniqueName(trimmed, this.builds, id) };
+    if (renamed.name !== build.name) {
+      this.commit(this.builds.map(item => (item.id === id ? renamed : item)));
+    }
+    return renamed;
+  }
+
+  async duplicate(id: string, name: string): Promise<Build> {
+    const source = this.find(id);
+    if (!source) {
+      throw new BuildError('not-found', id);
+    }
+    if (this.copying.has(id)) {
+      throw new BuildError('copying', id);
+    }
+    const baseName = name.trim() || source.name;
+    const copy: Build = {
+      id: this.nextId(),
+      name: baseName,
+      version: source.version,
+      loader: source.loader,
+      createdAt: Date.now(),
+    };
+    if (source.loaderVersion) {
+      copy.loaderVersion = source.loaderVersion;
+    }
+
+    const target = buildRoot(copy.id);
+    this.copying.add(id);
+    try {
+      let copied: boolean;
+      try {
+        copied = await this.host.files.copyFolder(buildRoot(id), target);
+      } catch (error) {
+        const cleaned = this.host.files.remove(target);
+        const detail = error instanceof Error ? error.message : String(error);
+        throw new BuildError(
+          'files',
+          cleaned ? detail : `${detail}; не удалось удалить неполную копию`,
+        );
+      }
+      if (!copied) {
+        const cleaned = this.host.files.remove(target);
+        throw new BuildError(
+          'files',
+          cleaned
+            ? 'Не удалось скопировать папку сборки'
+            : 'Не удалось скопировать сборку и удалить неполную копию',
+        );
+      }
+
+      const completedCopy = {
+        ...copy,
+        name: uniqueName(baseName, this.builds),
+      };
+      this.commit([...this.builds, completedCopy]);
+      return completedCopy;
+    } finally {
+      this.copying.delete(id);
     }
   }
 

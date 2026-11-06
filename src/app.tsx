@@ -8,6 +8,7 @@ import { Builds } from './sections/builds';
 import { Overview } from './sections/overview';
 import { Placeholder } from './sections/placeholder';
 import { Settings } from './sections/settings';
+import { Servers } from './sections/servers';
 import { BottomIsland } from './ui/island';
 
 const sections = manifest.sections ?? [];
@@ -37,6 +38,7 @@ function Shell({ section, width, height }: GameAppProps) {
   const items = sections.map(item => ({
     id: item.id,
     title: localize(item.title, locale),
+    icon: item.icon,
   }));
 
   return (
@@ -88,7 +90,12 @@ function renderSection(id: string | undefined, title: string): ReactNode {
       return <Settings />;
     case 'overview':
     case undefined:
-      return <Overview />;
+      return (
+        <>
+          <Overview />
+          <Servers />
+        </>
+      );
     default:
       return <Placeholder id={id} title={title} />;
   }

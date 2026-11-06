@@ -22,6 +22,7 @@ import type { Build, MinecraftCore } from './types';
 
 export type {
   Build,
+  BuildFolder,
   LaunchErrorCode,
   LaunchPhase,
   LaunchState,
@@ -30,8 +31,21 @@ export type {
   McVersion,
   MinecraftCore,
   ModLoader,
+  ServerTarget,
 } from './types';
 export { BuildError } from './builds';
+export {
+  DEFAULT_SERVER_FILTERS,
+  parseServerPage,
+  parseServerTarget,
+  SERVER_PAGE_SIZE,
+  serverPageUrl,
+} from './servers';
+export type {
+  MinecraftServer,
+  MinecraftServerPage,
+  ServerFilters,
+} from './servers';
 
 export function createMinecraft(host: GameHost): MinecraftCore {
   const listeners = new Set<() => void>();
@@ -74,10 +88,23 @@ export function createMinecraft(host: GameHost): MinecraftCore {
     // Массив не копируем: та же ссылка до изменения — снимок для useSyncExternalStore
     listBuilds: () => builds.builds as Build[],
     createBuild: input => builds.create(input),
+    renameBuild: (buildId, name) => builds.rename(buildId, name),
+    duplicateBuild: (buildId, name) => {
+      if (runtime.isBusy(buildId)) {
+        return Promise.reject(new BuildError('running', buildId));
+      }
+      if (builds.isCopying(buildId)) {
+        return Promise.reject(new BuildError('copying', buildId));
+      }
+      return builds.duplicate(buildId, name);
+    },
     removeBuild: id => {
       // Папку запущенной игры не удалить (файлы заняты), а готовящаяся пишет в неё прямо сейчас
       if (runtime.isBusy(id)) {
         throw new BuildError('running', id);
+      }
+      if (builds.isCopying(id)) {
+        throw new BuildError('copying', id);
       }
       builds.remove(id);
       runtime.forget(id);
@@ -90,13 +117,20 @@ export function createMinecraft(host: GameHost): MinecraftCore {
     listLoaderVersions: (loader, mcVersion) =>
       loaderVersions(host, loader, mcVersion),
 
-    launch: buildId => runtime.launch(buildId),
+    launch: (buildId, server) => {
+      if (builds.isCopying(buildId)) {
+        return Promise.reject(new BuildError('copying', buildId));
+      }
+      return runtime.launch(buildId, server);
+    },
     stop: buildId => runtime.stop(buildId),
     getLaunchState: buildId => runtime.get(buildId),
 
-    openBuildFolder: buildId => {
+    openBuildFolder: (buildId, folder = '') => {
       if (builds.find(buildId)) {
-        host.files.openFolder(buildRoot(buildId));
+        host.files.openFolder(
+          folder ? `${buildRoot(buildId)}/${folder}` : buildRoot(buildId),
+        );
       }
     },
 

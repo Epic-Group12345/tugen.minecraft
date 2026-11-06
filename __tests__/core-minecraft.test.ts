@@ -1,6 +1,14 @@
 import type { GameHost, LaunchOptions } from '@tugen/sdk';
-import { createMinecraft } from '../src/core';
+import {
+  createMinecraft,
+  parseServerPage,
+  serverPageUrl,
+} from '../src/core';
 import { MANIFEST_CACHE, versionJson } from '../src/core/paths';
+import {
+  categoryTitle,
+  serverMetaTitle,
+} from '../src/sections/server-catalog';
 
 // Ядро целиком поверх GameHost в памяти: файлы — словарь, сеть — таблица ответов, процессы —
 // записанные вызовы. Так проверяется хранилище сборок, кэш версий и ход запуска без лаунчера
@@ -13,6 +21,7 @@ interface FakeHost extends GameHost {
   killed: string[];
   cancelled: string[];
   alive: string[];
+  openedFolders: string[];
 }
 
 function fakeHost(init: { running?: string[] } = {}): FakeHost {
@@ -23,6 +32,7 @@ function fakeHost(init: { running?: string[] } = {}): FakeHost {
   const killed: string[] = [];
   const cancelled: string[] = [];
   const alive = [...(init.running ?? [])];
+  const openedFolders: string[] = [];
   const fetchText = async (url: string) => {
     const r = responses.get(url);
     if (r === undefined) {
@@ -41,6 +51,7 @@ function fakeHost(init: { running?: string[] } = {}): FakeHost {
     killed,
     cancelled,
     alive,
+    openedFolders,
     navigation: { open: () => {}, exit: () => {} },
     files: {
       exists: p => fs.has(p) || [...fs.keys()].some(k => k.startsWith(`${p}/`)),
@@ -55,13 +66,26 @@ function fakeHost(init: { running?: string[] } = {}): FakeHost {
           .forEach(k => fs.delete(k));
         return true;
       },
-      copyFolder: async () => true,
+      copyFolder: async (from, to) => {
+        const files = [...fs.entries()].filter(
+          ([path]) => path === from || path.startsWith(`${from}/`),
+        );
+        if (!files.length) {
+          return false;
+        }
+        files.forEach(([path, value]) => {
+          fs.set(`${to}${path.slice(from.length)}`, value);
+        });
+        return true;
+      },
       copyFiles: async from => from.length,
       extract: async () => true,
       materialize: async objects => ({ linked: objects.length, copied: 0 }),
       markExecutable: async () => true,
       absolutePath: p => `/root/${p}`,
-      openFolder: () => {},
+      openFolder: path => {
+        openedFolders.push(path);
+      },
     },
     downloads: {
       download: async (_job, files, onProgress) => {
@@ -110,6 +134,86 @@ function fakeHost(init: { running?: string[] } = {}): FakeHost {
     },
   };
 }
+
+describe('каталог серверов', () => {
+  it('сохраняет сведения рейтинга для строк и продолжения списка', () => {
+    const page = parseServerPage(
+      {
+        total: 40,
+        servers: [
+          {
+            name: 'Server',
+            slug: 'server',
+            ip: 'play.example.org',
+            online: 12,
+            avgOnline: 20,
+            isOnline: true,
+            categories: ['SURVIVAL', 'PVP'],
+            versionMajors: ['1.20', '1.21'],
+            logoUrl: 'https://cdn.example.org/logo.png',
+            bannerUrl: 'http://insecure.example.org/banner.png',
+            license: 'CRACKED',
+            boostPoints: 5,
+            votes30d: 100,
+            createdAt: new Date().toISOString(),
+          },
+        ],
+      },
+      24,
+    );
+
+    expect(page.total).toBe(40);
+    expect(page.count).toBe(1);
+    expect(page.servers[0]).toMatchObject({
+      rank: 25,
+      averageOnline: 20,
+      versionSpan: '1.20 – 1.21',
+      modes: ['SURVIVAL', 'PVP'],
+      logo: 'https://cdn.example.org/logo.png',
+      banner: null,
+      cracked: true,
+      isNew: true,
+      boost: 5,
+      votes: 100,
+    });
+  });
+
+  it('формирует запрос со всеми выбранными фильтрами и поиском', () => {
+    expect(
+      serverPageUrl(24, 'play server', {
+        category: 'SURVIVAL',
+        sort: 'online',
+        license: 'CRACKED',
+        online: '20',
+        version: '1.21',
+      }),
+    ).toBe(
+      'https://api.millida.net/v2/rating/servers?limit=24&offset=24&sort=online&category=SURVIVAL&license=CRACKED&version=1.21&minOnline=20&search=play%20server',
+    );
+  });
+
+  it('локализует категории и метаданные рейтинга', () => {
+    const key = (value: string) => value;
+    expect(categoryTitle('HIDE_SEEK', key)).toBe('servers.category.hideSeek');
+    expect(serverMetaTitle('APPLICATION', key)).toBe(
+      'servers.access.application',
+    );
+    expect(categoryTitle('NEW_MODE', key)).toBe('new mode');
+  });
+
+  it('не помечает сервер с датой добавления в будущем как новый', () => {
+    const page = parseServerPage({
+      servers: [
+        {
+          name: 'Future',
+          slug: 'future',
+          createdAt: '2999-01-01T00:00:00.000Z',
+        },
+      ],
+    });
+    expect(page.servers[0].isNew).toBe(false);
+  });
+});
 
 describe('настройки', () => {
   it('сохраняются, снимок стабилен до изменения', () => {
@@ -202,6 +306,164 @@ describe('сборки', () => {
       core.createBuild({ name: 'x', version: ' ', loader: 'vanilla' }),
     ).toThrow();
     expect(core.listBuilds()).toEqual([]);
+  });
+
+  it('переименовывает сборку и сохраняет уникальное имя', () => {
+    const host = fakeHost();
+    const core = createMinecraft(host);
+    const first = core.createBuild({
+      name: 'Мир',
+      version: '1.21.4',
+      loader: 'vanilla',
+    });
+    const second = core.createBuild({
+      name: 'Другое',
+      version: '1.21.4',
+      loader: 'vanilla',
+    });
+
+    expect(core.renameBuild(second.id, ' Мир ')).toMatchObject({
+      id: second.id,
+      name: 'Мир (2)',
+    });
+    expect(core.listBuilds().map(build => build.name)).toEqual([
+      'Мир',
+      'Мир (2)',
+    ]);
+    expect(createMinecraft(host).listBuilds()[1].name).toBe('Мир (2)');
+    expect(() => core.renameBuild(first.id, '  ')).toThrow();
+  });
+
+  it('копирует файлы сборки, но не делает копию основной', async () => {
+    const host = fakeHost();
+    const core = createMinecraft(host);
+    const original = core.createBuild({
+      name: 'Сборка',
+      version: '1.21.4',
+      loader: 'fabric',
+      loaderVersion: '0.16.0',
+    });
+    host.fs.set(`builds/${original.id}/saves/world/level.dat`, 'world');
+
+    const copy = await core.duplicateBuild(original.id, original.name);
+
+    expect(copy).toMatchObject({
+      name: 'Сборка (2)',
+      version: original.version,
+      loader: original.loader,
+      loaderVersion: original.loaderVersion,
+    });
+    expect(copy.id).not.toBe(original.id);
+    expect(copy.lastPlayedAt).toBeUndefined();
+    expect(host.fs.get(`builds/${copy.id}/saves/world/level.dat`)).toBe(
+      'world',
+    );
+    expect(core.getMainBuildId()).toBe(original.id);
+  });
+
+  it('не копирует сборку во время её подготовки к запуску', async () => {
+    const core = createMinecraft(fakeHost());
+    const build = core.createBuild({
+      name: 'Сборка',
+      version: '1.21.4',
+      loader: 'vanilla',
+    });
+    const launch = core.launch(build.id);
+
+    await expect(
+      core.duplicateBuild(build.id, 'Копия'),
+    ).rejects.toMatchObject({ code: 'running' });
+    await launch;
+    expect(core.listBuilds()).toHaveLength(1);
+  });
+
+  it('не запускает и не удаляет сборку во время копирования', async () => {
+    const host = fakeHost();
+    const core = createMinecraft(host);
+    const build = core.createBuild({
+      name: 'Сборка',
+      version: '1.21.4',
+      loader: 'vanilla',
+    });
+    let finishCopy: (copied: boolean) => void = () => {};
+    host.files.copyFolder = () =>
+      new Promise<boolean>(resolve => {
+        finishCopy = copied => resolve(copied);
+      });
+
+    const copying = core.duplicateBuild(build.id, 'Копия');
+    await expect(core.launch(build.id)).rejects.toMatchObject({
+      code: 'copying',
+    });
+    await expect(
+      core.duplicateBuild(build.id, 'Другая копия'),
+    ).rejects.toMatchObject({ code: 'copying' });
+    let removeError: unknown;
+    try {
+      core.removeBuild(build.id);
+    } catch (error) {
+      removeError = error;
+    }
+    expect(removeError).toMatchObject({ code: 'copying' });
+    expect(core.listBuilds()).toHaveLength(1);
+
+    finishCopy(true);
+    await expect(copying).resolves.toMatchObject({ name: 'Копия' });
+    expect(core.listBuilds()).toHaveLength(2);
+  });
+
+  it('сохраняет уникальные имена при создании сборки во время копирования', async () => {
+    const host = fakeHost();
+    const core = createMinecraft(host);
+    const original = core.createBuild({
+      name: 'Сборка',
+      version: '1.21.4',
+      loader: 'vanilla',
+    });
+    let finishCopy: (copied: boolean) => void = () => {};
+    host.files.copyFolder = () =>
+      new Promise<boolean>(resolve => {
+        finishCopy = copied => resolve(copied);
+      });
+
+    const copying = core.duplicateBuild(original.id, 'Копия');
+    core.createBuild({
+      name: 'Копия',
+      version: '1.21.4',
+      loader: 'vanilla',
+    });
+    finishCopy(true);
+
+    await expect(copying).resolves.toMatchObject({ name: 'Копия (2)' });
+    expect(core.listBuilds().map(build => build.name)).toEqual([
+      'Сборка',
+      'Копия',
+      'Копия (2)',
+    ]);
+  });
+
+  it('не добавляет копию при ошибке файлов и открывает выбранную папку', async () => {
+    const host = fakeHost();
+    const core = createMinecraft(host);
+    const build = core.createBuild({
+      name: 'Сборка',
+      version: '1.21.4',
+      loader: 'vanilla',
+    });
+    const sourceFiles = [...host.fs.keys()];
+    host.files.copyFolder = async (_from, to) => {
+      host.fs.set(`${to}/partial`, 'partial');
+      return false;
+    };
+
+    await expect(core.duplicateBuild(build.id, 'Копия')).rejects.toMatchObject({
+      code: 'files',
+    });
+    expect(core.listBuilds()).toHaveLength(1);
+    expect([...host.fs.keys()]).toEqual(sourceFiles);
+
+    core.openBuildFolder(build.id, 'logs');
+    expect(host.openedFolders).toEqual([`builds/${build.id}/logs`]);
   });
 
   it('испорченные записи хранилища пропускаются', () => {

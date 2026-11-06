@@ -9,6 +9,7 @@ import {
   type TextInputProps,
 } from 'react-native';
 import { useAnimatedFlag } from './animation';
+import { GravityIcon, type GravityIconName } from './icon';
 import { colors, radius } from './theme';
 
 // Простые элементы экранов: карточка, поле ввода, строка списка выбора, полоса прогресса.
@@ -22,6 +23,7 @@ interface FieldProps extends Omit<TextInputProps, 'style'> {
   label: string;
   error?: string | null;
   hint?: string;
+  icon?: GravityIconName;
 }
 
 /** Поле ввода с подписью; ошибка — под полем */
@@ -29,6 +31,7 @@ export function Field({
   label,
   error,
   hint,
+  icon,
   onFocus,
   onBlur,
   ...input
@@ -37,24 +40,31 @@ export function Field({
   return (
     <View style={styles.field}>
       <Text style={styles.label}>{label}</Text>
-      <TextInput
-        {...input}
-        accessibilityLabel={label}
-        placeholderTextColor={colors.textSecondary}
-        onFocus={event => {
-          setFocused(true);
-          onFocus?.(event);
-        }}
-        onBlur={event => {
-          setFocused(false);
-          onBlur?.(event);
-        }}
+      <View
         style={[
           styles.input,
           focused && styles.inputFocused,
           !!error && styles.inputError,
         ]}
-      />
+      >
+        {icon ? (
+          <GravityIcon name={icon} size={16} color={colors.iconSecondary} />
+        ) : null}
+        <TextInput
+          {...input}
+          accessibilityLabel={label}
+          placeholderTextColor={colors.textSecondary}
+          onFocus={event => {
+            setFocused(true);
+            onFocus?.(event);
+          }}
+          onBlur={event => {
+            setFocused(false);
+            onBlur?.(event);
+          }}
+          style={styles.inputText}
+        />
+      </View>
       {error ? (
         <Text style={styles.error}>{error}</Text>
       ) : hint ? (
@@ -102,6 +112,9 @@ export function ChoiceRow({
         {title}
       </Text>
       {detail ? <Text style={styles.rowDetail}>{detail}</Text> : null}
+      {selected ? (
+        <GravityIcon name="Check" size={14} color={colors.accent} />
+      ) : null}
     </Pressable>
   );
 }
@@ -135,13 +148,20 @@ const styles = StyleSheet.create({
   field: { gap: 6 },
   label: { fontSize: 12, color: colors.textSecondary },
   input: {
-    minHeight: 32,
+    minHeight: 44,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
     paddingHorizontal: 10,
-    paddingVertical: 6,
     borderWidth: 1,
     borderColor: 'transparent',
     borderRadius: radius.small,
     backgroundColor: colors.field,
+  },
+  inputText: {
+    flex: 1,
+    minHeight: 42,
+    paddingVertical: 6,
     fontSize: 14,
     color: colors.text,
   },

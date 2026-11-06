@@ -1,8 +1,9 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState, type ReactNode } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import { useCore, useSettings } from '../core/react';
 import { useT } from '../i18n';
 import { Card, Field } from '../ui/controls';
+import { GravityIcon, type GravityIconName } from '../ui/icon';
 import { GLOW_CYAN, GLOW_NEUTRAL } from '../ui/glow';
 import { GlowButton, GlowText } from '../ui/glow-button';
 import { colors } from '../ui/theme';
@@ -18,11 +19,38 @@ export function Settings() {
   return (
     <>
       <Text style={sectionStyles.heading}>{tr('settings')}</Text>
-      <NicknameCard />
-      <MemoryCard />
-      <JvmArgsCard />
-      <WindowCard />
+      <SettingsGroup title={tr('settings.player')} icon="Person">
+        <NicknameCard />
+      </SettingsGroup>
+      <SettingsGroup title={tr('settings.performance')} icon="Display">
+        <MemoryCard />
+      </SettingsGroup>
+      <SettingsGroup title={tr('settings.launch')} icon="Gear">
+        <JvmArgsCard />
+        <View style={styles.divider} />
+        <WindowCard />
+      </SettingsGroup>
     </>
+  );
+}
+
+function SettingsGroup({
+  title,
+  children,
+  icon,
+}: {
+  title: string;
+  icon: GravityIconName;
+  children: ReactNode;
+}) {
+  return (
+    <View style={styles.group}>
+      <View style={styles.groupHeading}>
+        <GravityIcon name={icon} size={14} color={colors.iconSecondary} />
+        <Text style={styles.groupTitle}>{title}</Text>
+      </View>
+      <Card>{children}</Card>
+    </View>
   );
 }
 
@@ -48,19 +76,18 @@ function NicknameCard() {
   };
 
   return (
-    <Card>
-      <Field
-        label={tr('nickname')}
-        value={draft}
-        onChangeText={setDraft}
-        onBlur={save}
-        onSubmitEditing={save}
-        error={valid ? null : tr('nicknameInvalid')}
-        maxLength={16}
-        autoCorrect={false}
-        autoCapitalize="none"
-      />
-    </Card>
+    <Field
+      label={tr('nickname')}
+      icon="Person"
+      value={draft}
+      onChangeText={setDraft}
+      onBlur={save}
+      onSubmitEditing={save}
+      error={valid ? null : tr('nicknameInvalid')}
+      maxLength={16}
+      autoCorrect={false}
+      autoCapitalize="none"
+    />
   );
 }
 
@@ -79,7 +106,7 @@ function MemoryCard() {
   };
 
   return (
-    <Card>
+    <>
       <Text style={styles.label}>{tr('memory')}</Text>
       <View style={styles.memoryRow}>
         <GlowButton
@@ -88,7 +115,7 @@ function MemoryCard() {
           disabled={memory <= range.min}
           style={styles.stepper}
         >
-          <Text style={styles.stepperText}>−</Text>
+          <GravityIcon name="Minus" size={14} />
         </GlowButton>
         <Text style={styles.memoryValue}>
           {memory} {tr('mb')}
@@ -99,7 +126,7 @@ function MemoryCard() {
           disabled={memory >= range.max}
           style={styles.stepper}
         >
-          <Text style={styles.stepperText}>+</Text>
+          <GravityIcon name="Plus" size={14} />
         </GlowButton>
         <GlowButton
           label={tr('recommended')}
@@ -107,6 +134,7 @@ function MemoryCard() {
           selected={memory === range.recommended}
           onPress={() => set(range.recommended)}
         >
+          <GravityIcon name="Star" size={14} />
           <GlowText>{tr('recommended')}</GlowText>
         </GlowButton>
       </View>
@@ -117,7 +145,7 @@ function MemoryCard() {
           recommended: range.recommended,
         })}
       </Text>
-    </Card>
+    </>
   );
 }
 
@@ -135,19 +163,18 @@ function JvmArgsCard() {
   };
 
   return (
-    <Card>
-      <Field
-        label={tr('jvmArgs')}
-        hint={tr('jvmArgsHint')}
-        value={draft}
-        onChangeText={setDraft}
-        onBlur={save}
-        onSubmitEditing={save}
-        autoCorrect={false}
-        autoCapitalize="none"
-        placeholder="-XX:+UseG1GC"
-      />
-    </Card>
+    <Field
+      label={tr('jvmArgs')}
+      icon="Gear"
+      hint={tr('jvmArgsHint')}
+      value={draft}
+      onChangeText={setDraft}
+      onBlur={save}
+      onSubmitEditing={save}
+      autoCorrect={false}
+      autoCapitalize="none"
+      placeholder="-XX:+UseG1GC"
+    />
   );
 }
 
@@ -187,12 +214,13 @@ function WindowCard() {
 
   const invalid = widthValue === null || heightValue === null;
   return (
-    <Card>
+    <>
       <Text style={styles.label}>{tr('windowSize')}</Text>
       <View style={styles.windowRow}>
         <View style={styles.windowField}>
           <Field
             label={tr('windowWidth')}
+            icon="Display"
             value={width}
             onChangeText={setWidth}
             onBlur={save}
@@ -206,6 +234,7 @@ function WindowCard() {
         <View style={styles.windowField}>
           <Field
             label={tr('windowHeight')}
+            icon="Display"
             value={height}
             onChangeText={setHeight}
             onBlur={save}
@@ -221,11 +250,20 @@ function WindowCard() {
       ) : (
         <Text style={sectionStyles.small}>{tr('windowHint')}</Text>
       )}
-    </Card>
+    </>
   );
 }
 
 const styles = StyleSheet.create({
+  group: { gap: 8 },
+  groupHeading: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  groupTitle: {
+    fontSize: 11,
+    fontWeight: '600',
+    letterSpacing: 0.8,
+    color: colors.textSecondary,
+  },
+  divider: { height: StyleSheet.hairlineWidth, backgroundColor: colors.field },
   label: { fontSize: 12, color: colors.textSecondary },
   memoryRow: {
     flexDirection: 'row',
@@ -234,12 +272,6 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   stepper: { minWidth: 32, justifyContent: 'center' },
-  stepperText: {
-    fontSize: 16,
-    lineHeight: 18,
-    textAlign: 'center',
-    color: colors.text,
-  },
   memoryValue: {
     minWidth: 96,
     fontSize: 18,

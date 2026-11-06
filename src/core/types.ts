@@ -17,6 +17,15 @@ export type Loader = 'vanilla' | 'fabric' | 'quilt' | 'forge' | 'neoforge';
 
 export type ModLoader = Exclude<Loader, 'vanilla'>;
 
+export type BuildFolder =
+  | ''
+  | 'saves'
+  | 'mods'
+  | 'resourcepacks'
+  | 'shaderpacks'
+  | 'screenshots'
+  | 'logs';
+
 export interface Build {
   id: string;
   name: string;
@@ -80,6 +89,8 @@ export interface MinecraftCore {
     loader: Loader;
     loaderVersion?: string;
   }): Build;
+  renameBuild(buildId: string, name: string): Build;
+  duplicateBuild(buildId: string, name: string): Promise<Build>;
   removeBuild(id: string): void;
   getMainBuildId(): string | null;
   setMainBuild(id: string): void;
@@ -87,12 +98,18 @@ export interface MinecraftCore {
   listVersions(includeSnapshots?: boolean): Promise<McVersion[]>;
   listLoaderVersions(loader: ModLoader, mcVersion: string): Promise<string[]>;
 
-  launch(buildId: string): Promise<void>;
+  launch(buildId: string, server?: ServerTarget): Promise<void>;
   stop(buildId: string): void;
   getLaunchState(buildId: string): LaunchState;
 
-  openBuildFolder(buildId: string): void;
+  openBuildFolder(buildId: string, folder?: BuildFolder): void;
 
   /** Любое изменение настроек, сборок или состояния запуска */
   subscribe(listener: () => void): () => void;
+}
+
+export interface ServerTarget {
+  /** Проверенное DNS-имя, IPv4 или IPv6 без квадратных скобок */
+  address: string;
+  port: number;
 }

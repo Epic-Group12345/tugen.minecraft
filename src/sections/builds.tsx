@@ -3,18 +3,19 @@ import { StyleSheet, Text, View } from 'react-native';
 import type { Build } from '../core';
 import {
   useBuilds,
-  useCore,
   useLaunchState,
   useMainBuildId,
 } from '../core/react';
 import { useT } from '../i18n';
-import { Card, controlStyles } from '../ui/controls';
+import { Card } from '../ui/controls';
 import { GLOW_CYAN_FILL } from '../ui/glow';
 import { GlowButton, GlowText } from '../ui/glow-button';
 import { colors, radius } from '../ui/theme';
 import { BuildForm } from './build-form';
-import { describeBuild, isBusy } from './labels';
+import { GravityIcon } from '../ui/icon';
+import { describeBuild, errorText, phaseText } from './labels';
 import { sectionStyles } from './styles';
+import { BuildActions } from './build-actions';
 
 // Сборки: список и создание новой
 export function Builds() {
@@ -27,13 +28,19 @@ export function Builds() {
   return (
     <>
       <View style={sectionStyles.header}>
-        <Text style={sectionStyles.heading}>{tr('builds')}</Text>
+        <View style={styles.headingGroup}>
+          <Text style={sectionStyles.heading}>{tr('builds')}</Text>
+          <Text style={sectionStyles.small}>
+            {tr('buildCount', { count: builds.length })}
+          </Text>
+        </View>
         {!creating && (
           <GlowButton
             label={tr('createBuild')}
             glow={GLOW_CYAN_FILL}
             onPress={() => setCreating(true)}
           >
+            <GravityIcon name="Plus" size={14} color={colors.onAccent} />
             <GlowText onAccent>{tr('createBuild')}</GlowText>
           </GlowButton>
         )}
@@ -56,80 +63,67 @@ export function Builds() {
 
 function BuildRow({ build, main }: { build: Build; main: boolean }) {
   const tr = useT();
-  const core = useCore();
   const state = useLaunchState(build.id);
-  const [confirming, setConfirming] = useState(false);
-  // Запущенную или готовящуюся сборку не удаляем: её файлы сейчас в деле
-  const locked = isBusy(state.phase) || state.phase === 'running';
 
   return (
     <Card>
       <View style={styles.titleRow}>
-        <Text style={[sectionStyles.title, styles.name]} numberOfLines={1}>
-          {build.name}
-        </Text>
-        {main && (
-          <View style={styles.badge}>
-            <Text style={styles.badgeText}>{tr('main')}</Text>
-          </View>
-        )}
+        <View style={styles.buildMark}>
+          <GravityIcon name="Cube" size={18} />
+        </View>
+        <View style={styles.buildInfo}>
+          <Text style={[sectionStyles.title, styles.name]} numberOfLines={1}>
+            {build.name}
+          </Text>
+          {main && (
+            <View style={styles.badge}>
+              <Text style={styles.badgeText}>{tr('main')}</Text>
+            </View>
+          )}
+        </View>
       </View>
       <Text style={sectionStyles.body}>{describeBuild(build)}</Text>
-      {confirming ? (
-        <View style={styles.confirm}>
-          <Text style={sectionStyles.body}>
-            {tr('removeConfirm', { name: build.name })}
+      {state.phase !== 'idle' ? (
+        <View style={styles.launchStatus}>
+          <Text
+            style={
+              state.phase === 'failed'
+                ? sectionStyles.error
+                : sectionStyles.small
+            }
+          >
+            {state.phase === 'failed' && state.error
+              ? errorText(state.error, tr)
+              : phaseText(state.phase, tr)}
           </Text>
-          <View style={controlStyles.buttons}>
-            <GlowButton
-              label={tr('remove')}
-              onPress={() => {
-                setConfirming(false);
-                core.removeBuild(build.id);
-              }}
-              disabled={locked}
-            >
-              <Text style={styles.danger}>{tr('remove')}</Text>
-            </GlowButton>
-            <GlowButton
-              label={tr('cancel')}
-              onPress={() => setConfirming(false)}
-            >
-              <GlowText>{tr('cancel')}</GlowText>
-            </GlowButton>
-          </View>
+          {state.progress && state.progress.total > 0 ? (
+            <Text style={sectionStyles.small}>
+              {tr('progress', {
+                done: state.progress.done,
+                total: state.progress.total,
+              })}
+            </Text>
+          ) : null}
         </View>
-      ) : (
-        <View style={controlStyles.buttons}>
-          {!main && (
-            <GlowButton
-              label={tr('makeMain')}
-              onPress={() => core.setMainBuild(build.id)}
-            >
-              <GlowText>{tr('makeMain')}</GlowText>
-            </GlowButton>
-          )}
-          <GlowButton
-            label={tr('folder')}
-            onPress={() => core.openBuildFolder(build.id)}
-          >
-            <GlowText>{tr('folder')}</GlowText>
-          </GlowButton>
-          <GlowButton
-            label={tr('remove')}
-            onPress={() => setConfirming(true)}
-            disabled={locked}
-          >
-            <GlowText>{tr('remove')}</GlowText>
-          </GlowButton>
-        </View>
-      )}
+      ) : null}
+      <BuildActions build={build} main={main} />
     </Card>
   );
 }
 
 const styles = StyleSheet.create({
-  titleRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  headingGroup: { flex: 1, gap: 2 },
+  titleRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+  buildMark: {
+    width: 36,
+    height: 36,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: radius.small,
+    backgroundColor: colors.field,
+  },
+  buildInfo: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: 8 },
+  launchStatus: { gap: 2 },
   name: { flexShrink: 1 },
   badge: {
     paddingHorizontal: 6,
@@ -138,11 +132,4 @@ const styles = StyleSheet.create({
     backgroundColor: colors.accentSoft,
   },
   badgeText: { fontSize: 11, color: colors.accent },
-  confirm: { gap: 8 },
-  danger: {
-    paddingHorizontal: 6,
-    fontSize: 12,
-    lineHeight: 16,
-    color: colors.danger,
-  },
 });

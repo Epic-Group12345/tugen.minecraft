@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import type { Loader, McVersion } from '../core';
 import { useCore } from '../core/react';
+import { GravityIcon } from '../ui/icon';
 import { useT } from '../i18n';
 import { Card, ChoiceRow, Field, controlStyles } from '../ui/controls';
 import { GLOW_CYAN, GLOW_CYAN_FILL, GLOW_NEUTRAL } from '../ui/glow';
@@ -119,6 +120,7 @@ export function BuildForm({ onDone, cancelable }: BuildFormProps) {
       <Text style={sectionStyles.title}>{tr('newBuild')}</Text>
       <Field
         label={tr('buildName')}
+        icon="Cube"
         hint={tr('buildNameHint')}
         value={name}
         onChangeText={setName}
@@ -134,11 +136,13 @@ export function BuildForm({ onDone, cancelable }: BuildFormProps) {
             selected={snapshots}
             onPress={() => setSnapshots(value => !value)}
           >
+            <GravityIcon name="Clock" size={14} />
             <GlowText>{tr('snapshots')}</GlowText>
           </GlowButton>
         </View>
         <Field
           label={tr('versionSearch')}
+          icon="Magnifier"
           value={query}
           onChangeText={setQuery}
           placeholder="1.21"
@@ -163,6 +167,10 @@ export function BuildForm({ onDone, cancelable }: BuildFormProps) {
               selected={item === loader}
               onPress={() => setLoader(item)}
             >
+              <GravityIcon
+                name={item === 'vanilla' ? 'Cube' : 'Gear'}
+                size={14}
+              />
               <GlowText>{LOADER_NAMES[item]}</GlowText>
             </GlowButton>
           ))}
@@ -193,10 +201,12 @@ export function BuildForm({ onDone, cancelable }: BuildFormProps) {
           onPress={create}
           disabled={!canCreate}
         >
+          <GravityIcon name="Plus" size={14} color={colors.onAccent} />
           <GlowText onAccent>{tr('create')}</GlowText>
         </GlowButton>
         {cancelable && (
           <GlowButton label={tr('cancel')} onPress={onDone}>
+            <GravityIcon name="Xmark" size={14} />
             <GlowText>{tr('cancel')}</GlowText>
           </GlowButton>
         )}
@@ -246,9 +256,12 @@ function VersionList({
         />
       ))}
       {rest > 0 && (
-        <Text style={[sectionStyles.small, styles.more]}>
-          {tr('moreVersions', { count: rest })}
-        </Text>
+        <View style={styles.more}>
+          <GravityIcon name="ArrowDown" size={14} />
+          <Text style={sectionStyles.small}>
+            {tr('moreVersions', { count: rest })}
+          </Text>
+        </View>
       )}
     </ScrollView>
   );
@@ -309,5 +322,11 @@ const styles = StyleSheet.create({
   label: { fontSize: 12, color: colors.textSecondary },
   // Список выбора — своя прокрутка внутри экрана
   list: { maxHeight: 220 },
-  more: { paddingHorizontal: 10, paddingVertical: 6 },
+  more: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+  },
 });

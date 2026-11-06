@@ -8,7 +8,14 @@ import {
   prepare,
   type PrepareContext,
 } from './prepare';
-import type { Build, LaunchErrorCode, LaunchState, McSettings } from './types';
+import type {
+  Build,
+  LaunchErrorCode,
+  LaunchState,
+  McSettings,
+  ServerTarget,
+} from './types';
+import { isValidServerTarget } from './servers';
 
 // Запуск сборок: состояние каждой (готовится, качает, запущена, упала), журнал и остановка. Одна
 // сборка — один процесс игры (id процесса = id сборки); разные сборки можно запускать вместе.
@@ -100,7 +107,7 @@ export class LaunchManager {
     this.set(id, { phase: 'failed', error: code, progress: undefined, log });
   }
 
-  async launch(buildId: string): Promise<void> {
+  async launch(buildId: string, server?: ServerTarget): Promise<void> {
     const build = this.deps.findBuild(buildId);
     if (!build || this.isBusy(buildId)) {
       return;
@@ -112,6 +119,10 @@ export class LaunchManager {
     this.states.set(buildId, { phase: 'preparing', log: [] });
     this.deps.onChange();
 
+    if (server && !isValidServerTarget(server)) {
+      this.fail(buildId, 'start', 'invalid server address');
+      return;
+    }
     const settings = this.deps.getSettings();
     if (!isValidNickname(settings.nickname)) {
       this.fail(buildId, 'nickname', settings.nickname);
@@ -129,6 +140,7 @@ export class LaunchManager {
         },
         build,
         settings,
+        server,
       );
       if (!current()) {
         return;

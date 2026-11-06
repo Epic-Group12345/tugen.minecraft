@@ -2,7 +2,7 @@ import { offlineUuid } from './offline';
 import { libraryPath, logConfigPath, versionJar } from './paths';
 import type { GamePlatform } from './platform';
 import { MEMORY_START_MB } from './settings';
-import type { McSettings } from './types';
+import type { McSettings, ServerTarget } from './types';
 import {
   expand,
   gameArguments,
@@ -32,6 +32,7 @@ export interface LaunchArgsInput {
   assetsId: string;
   /** Путь внутри пространства → путь на диске (host.files.absolutePath) */
   absolute: (path: string) => string;
+  server?: ServerTarget;
 }
 
 /** Своё разрешение окна — только когда заданы обе стороны */
@@ -40,7 +41,7 @@ export const launchFeatures = (settings: McSettings): Features => ({
 });
 
 export function launchArgs(input: LaunchArgsInput): string[] {
-  const { version, libraries, platform, settings, absolute } = input;
+  const { version, libraries, platform, settings, absolute, server } = input;
   const features = launchFeatures(settings);
   const jarId = version.jar ?? version.id;
   const classpath = [
@@ -90,5 +91,8 @@ export function launchArgs(input: LaunchArgsInput): string[] {
       : []),
     version.mainClass,
     ...gameArguments(version, vars, platform, features),
+    ...(server
+      ? ['--server', server.address, '--port', String(server.port)]
+      : []),
   ];
 }

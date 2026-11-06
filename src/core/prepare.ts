@@ -14,7 +14,7 @@ import {
   versionJson,
 } from './paths';
 import type { GamePlatform } from './platform';
-import type { Build, LaunchErrorCode, McSettings } from './types';
+import type { Build, LaunchErrorCode, McSettings, ServerTarget } from './types';
 import {
   javaComponent,
   mergeVersions,
@@ -166,6 +166,7 @@ export async function prepare(
   ctx: PrepareContext,
   build: Build,
   settings: McSettings,
+  server?: ServerTarget,
 ): Promise<LaunchPlan> {
   const { host, platform } = ctx;
   const id = build.id;
@@ -286,6 +287,7 @@ export async function prepare(
     gameAssets,
     assetsId,
     absolute: path => host.files.absolutePath(path),
+    server,
   });
   return {
     exe: java,

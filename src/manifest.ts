@@ -3,7 +3,7 @@ import type { GameManifest } from '@tugen/sdk';
 // Разделы — сервисы издателя. Боковой панели в новом лаунчере нет, поэтому строку разделов рисует
 // само мини-приложение (нижний остров, src/ui/island.tsx); лаунчер лишь помнит открытый раздел и передаёт его в App
 // пропом section. Иконки разделов оставлены для лаунчеров, которые их показывают (старый интерфейс)
-export const manifest: GameManifest = {
+export const manifest = {
   id: 'minecraft',
   name: 'Minecraft',
   version: '0.1.0',
@@ -13,7 +13,6 @@ export const manifest: GameManifest = {
   presentation: 'embedded',
   sections: [
     { id: 'overview', title: { ru: 'Обзор', en: 'Overview' }, icon: 'House' },
-    { id: 'servers', title: { ru: 'Серверы', en: 'Servers' }, icon: 'Server' },
     { id: 'builds', title: { ru: 'Сборки', en: 'Builds' }, icon: 'Box' },
     {
       id: 'content',
@@ -27,4 +26,4 @@ export const manifest: GameManifest = {
       icon: 'Gear',
     },
   ],
-};
+} as const satisfies GameManifest;

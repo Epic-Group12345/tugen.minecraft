@@ -1,7 +1,7 @@
 import { useHost } from '@tugen/sdk';
 import { useState } from 'react';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
-import type { Build, LaunchState } from '../core';
+import { BuildError, type Build, type LaunchState } from '../core';
 import {
   useBuilds,
   useCore,
@@ -10,11 +10,13 @@ import {
 } from '../core/react';
 import { useT } from '../i18n';
 import { Card, ProgressBar } from '../ui/controls';
-import { GLOW_CYAN_FILL, GLOW_NEUTRAL } from '../ui/glow';
+import { GravityIcon } from '../ui/icon';
+import { GLOW_CYAN_FILL } from '../ui/glow';
 import { GlowButton, GlowText } from '../ui/glow-button';
 import { colors } from '../ui/theme';
 import { describeBuild, errorText, isBusy, phaseText } from './labels';
 import { sectionStyles } from './styles';
+import { BuildActions } from './build-actions';
 
 // Сколько последних строк журнала видно свёрнутым и развёрнутым
 const LOG_COLLAPSED = 4;
@@ -44,6 +46,7 @@ function NoBuilds() {
           onPress={() => host.navigation.open('builds')}
           style={styles.bigButton}
         >
+          <GravityIcon name="Plus" size={18} color={colors.onAccent} />
           <Text style={styles.bigLabel}>{tr('createBuild')}</Text>
         </GlowButton>
       </View>
@@ -63,7 +66,13 @@ function MainBuild({ build }: { build: Build }) {
   const play = () => {
     setLaunchError(null);
     core.launch(build.id).catch((error: unknown) => {
-      setLaunchError(error instanceof Error ? error.message : String(error));
+      setLaunchError(
+        error instanceof BuildError && error.code === 'copying'
+          ? tr('buildCopyInProgress')
+          : tr('error.unknown', {
+              error: error instanceof Error ? error.message : String(error),
+            }),
+      );
     });
   };
 
@@ -71,7 +80,7 @@ function MainBuild({ build }: { build: Build }) {
     state.phase === 'failed' && state.error
       ? errorText(state.error, tr)
       : launchError && !busy && !running
-      ? tr('error.unknown', { error: launchError })
+      ? launchError
       : null;
 
   return (
@@ -82,36 +91,20 @@ function MainBuild({ build }: { build: Build }) {
           {build.name}
         </Text>
         <Text style={sectionStyles.body}>{describeBuild(build)}</Text>
-        <View style={styles.actions}>
-          {running ? (
-            <GlowButton
-              label={tr('stop')}
-              glow={GLOW_NEUTRAL}
-              onPress={() => core.stop(build.id)}
-              style={styles.bigButton}
-            >
-              <Text style={[styles.bigLabel, styles.bigLabelLight]}>
-                {tr('stop')}
-              </Text>
-            </GlowButton>
-          ) : (
-            <GlowButton
-              label={tr('play')}
-              glow={GLOW_CYAN_FILL}
-              onPress={play}
-              disabled={busy}
-              style={styles.bigButton}
-            >
-              <Text style={styles.bigLabel}>{tr('play')}</Text>
-            </GlowButton>
-          )}
+        <View style={styles.buildActions}>
+          <BuildActions
+            build={build}
+            main
+            large
+            onLaunch={play}
+          />
           {state.phase !== 'idle' && state.phase !== 'failed' && (
             <Text style={sectionStyles.body}>{phaseText(state.phase, tr)}</Text>
           )}
         </View>
         {busy && <Progress state={state} />}
         {error && (
-          <View style={styles.errorBox}>
+          <View style={styles.errorBox} accessibilityLiveRegion="polite">
             <Text style={sectionStyles.error}>{error}</Text>
             {state.log.length > 0 && (
               <Text style={sectionStyles.small}>{tr('errorLogHint')}</Text>
@@ -147,12 +140,19 @@ function Log({ lines }: { lines: readonly string[] }) {
   return (
     <Card>
       <View style={sectionStyles.header}>
-        <Text style={sectionStyles.title}>{tr('log')}</Text>
+        <View style={styles.logHeading}>
+          <GravityIcon name="FileText" size={16} color={colors.iconSecondary} />
+          <Text style={sectionStyles.title}>{tr('log')}</Text>
+        </View>
         {lines.length > LOG_COLLAPSED && (
           <GlowButton
             label={expanded ? tr('hideLog') : tr('showLog')}
             onPress={() => setExpanded(value => !value)}
           >
+            <GravityIcon
+              name={expanded ? 'ChevronUp' : 'ChevronDown'}
+              size={14}
+            />
             <GlowText>{expanded ? tr('hideLog') : tr('showLog')}</GlowText>
           </GlowButton>
         )}
@@ -183,12 +183,13 @@ const styles = StyleSheet.create({
     gap: 12,
     marginTop: 4,
   },
+  buildActions: { gap: 12, marginTop: 4 },
   // Большая кнопка: те же тени и скругление, что у кнопок островов, только просторнее
   bigButton: { paddingHorizontal: 18, paddingVertical: 10 },
   bigLabel: { fontSize: 16, fontWeight: '600', color: colors.onAccent },
-  bigLabelLight: { color: colors.text },
   progress: { gap: 6 },
   errorBox: { gap: 4 },
+  logHeading: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   logExpanded: { maxHeight: 320 },
   logLine: { fontSize: 12, lineHeight: 18, color: colors.textSecondary },
 });

@@ -1,7 +1,9 @@
 import { localize, useHost } from '@tugen/sdk';
-import { Text } from 'react-native';
+import { StyleSheet, Text, View } from 'react-native';
+import { manifest } from '../manifest';
 import { t, upcoming } from '../i18n';
 import { Card } from '../ui/controls';
+import { GravityIcon } from '../ui/icon';
 import { sectionStyles as styles } from './styles';
 
 interface PlaceholderProps {
@@ -13,9 +15,14 @@ interface PlaceholderProps {
 export function Placeholder({ id, title }: PlaceholderProps) {
   const locale = useHost().system.locale;
   const what = upcoming[id];
+  const icon =
+    manifest.sections?.find(section => section.id === id)?.icon ?? 'Cube';
   return (
     <Card>
-      <Text style={styles.heading}>{title}</Text>
+      <View style={localStyles.headingRow}>
+        <GravityIcon name={icon} size={20} />
+        <Text style={styles.heading}>{title}</Text>
+      </View>
       {what && (
         <Text style={styles.body}>
           {t('soon', locale)}: {localize(what, locale)}
@@ -24,3 +31,7 @@ export function Placeholder({ id, title }: PlaceholderProps) {
     </Card>
   );
 }
+
+const localStyles = StyleSheet.create({
+  headingRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+});

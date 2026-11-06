@@ -6,7 +6,7 @@ import {
 } from '../src/core/loaders';
 import { LogParser, guessLevel } from '../src/core/logs';
 import { filterVersions, parseManifest } from '../src/core/mojang';
-import { md5, offlineUuid, toHex, utf8 } from '../src/core/offline';
+import { offlineUuid } from '../src/core/offline';
 import { platformFor } from '../src/core/platform';
 import { appendLines, MAX_LOG_LINES } from '../src/core/runtime';
 import {
@@ -19,19 +19,7 @@ import {
 import type { VersionJson } from '../src/core/version';
 
 describe('офлайн-игрок', () => {
-  // Эталоны — node crypto и UUID.nameUUIDFromBytes из Java
-  it('md5 совпадает с эталоном', () => {
-    const cases: [string, string][] = [
-      ['', 'd41d8cd98f00b204e9800998ecf8427e'],
-      ['abc', '900150983cd24fb0d6963f7d28e17f72'],
-      ['Привет, мир', '464899b4b50fc966ad2753ca039e7378'],
-      ['x'.repeat(200), '30a83621ce5422fbdfdd539777458c78'],
-    ];
-    for (const [text, hash] of cases) {
-      expect(toHex(md5(utf8(text)))).toBe(hash);
-    }
-  });
-
+  // Эталоны — UUID.nameUUIDFromBytes из Java, как их считает игра
   it('UUID как у игры', () => {
     expect(offlineUuid('Player')).toBe('a01e3843-e521-3998-958a-f459800e4d11');
     expect(offlineUuid('Notch')).toBe('b50ad385-829d-3141-a216-7e7d7539ba7f');
@@ -345,6 +333,20 @@ describe('команда запуска', () => {
       offlineUuid('Steve').replace(/-/g, ''),
       '--gameDir',
       'C:\\G\\builds\\b1',
+    ]);
+  });
+
+  it('добавляет адрес выбранного сервера в аргументы игры', () => {
+    const args = launchArgs({
+      ...base,
+      settings,
+      server: { address: 'play.example.org', port: 25570 },
+    });
+    expect(args.slice(-4)).toEqual([
+      '--server',
+      'play.example.org',
+      '--port',
+      '25570',
     ]);
   });
 

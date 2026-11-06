@@ -25,6 +25,7 @@ interface GlowButtonProps {
   onPress?: () => void;
   disabled?: boolean;
   selected?: boolean;
+  expanded?: boolean;
   /** Добавка к оформлению кнопки: отступы, ширина. Скругление не трогать — оно у слоёв то же */
   style?: StyleProp<ViewStyle>;
   children: ReactNode;
@@ -36,6 +37,7 @@ export function GlowButton({
   onPress,
   disabled = false,
   selected,
+  expanded,
   style,
   children,
 }: GlowButtonProps) {
@@ -47,7 +49,7 @@ export function GlowButton({
     <Pressable
       accessibilityRole="button"
       accessibilityLabel={label}
-      accessibilityState={{ disabled, selected }}
+      accessibilityState={{ disabled, selected, expanded }}
       disabled={disabled}
       onPress={onPress}
       // Без своего оформления Fabric «сплющивает» Pressable, и на Windows пропадает наведение

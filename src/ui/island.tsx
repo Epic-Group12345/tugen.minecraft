@@ -1,8 +1,15 @@
 import type { ReactNode } from 'react';
-import { StyleSheet, View, type StyleProp, type ViewStyle } from 'react-native';
+import {
+  StyleSheet,
+  Text,
+  View,
+  type StyleProp,
+  type ViewStyle,
+} from 'react-native';
 import { GLOW_CYAN, GLOW_NEUTRAL } from './glow';
-import { GlowButton, GlowText } from './glow-button';
+import { GlowButton } from './glow-button';
 import { colors, radius } from './theme';
+import { GravityIcon, type GravityIconName } from './icon';
 
 // Острова — плавающие плашки с кнопками, копия островов лаунчера (src/components/island).
 // Нижнего острова лаунчера в игре нет: низ окна наш, и здесь — навигация по разделам игры
@@ -21,6 +28,7 @@ export function IslandSurface({
 export interface IslandItem {
   id: string;
   title: string;
+  icon: GravityIconName;
 }
 
 interface BottomIslandProps {
@@ -37,7 +45,7 @@ interface BottomIslandProps {
 /**
  * Нижний остров — навигация по разделам, по центру внизу поверх экранов, как BottomBar лаунчера.
  * Пустое место вокруг плашки нажатия пропускает к экрану. Открытый раздел — бирюзовыми кромками,
- * остальные белыми. Иконок пока нет: у пакета нет набора иконок лаунчера, кнопки — с подписью
+ * остальные белыми. Иконки входят в пакет и растеризуются SDK нативным SVG-провайдером
  */
 export function BottomIsland({
   items,
@@ -56,7 +64,7 @@ export function BottomIsland({
       <IslandSurface>
         <View
           style={styles.row}
-          accessibilityRole="tablist"
+          accessibilityRole="toolbar"
           accessibilityLabel={label}
         >
           {items.map(item => {
@@ -69,7 +77,8 @@ export function BottomIsland({
                 selected={selected}
                 onPress={() => onSelect(item.id)}
               >
-                <GlowText>{item.title}</GlowText>
+                <GravityIcon name={item.icon} size={16} />
+                <Text style={styles.itemLabel}>{item.title}</Text>
               </GlowButton>
             );
           })}
@@ -91,6 +100,7 @@ const styles = StyleSheet.create({
     boxShadow: '0px 0px 4px 0px #0A0A0A',
   },
   row: { flexDirection: 'row', alignItems: 'center', gap: 4 },
+  itemLabel: { fontSize: 12, lineHeight: 16, color: colors.text },
   // absolute bottom-0 left-0 right-0 z-10 items-center p-2
   dock: {
     position: 'absolute',

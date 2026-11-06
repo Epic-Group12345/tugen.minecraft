@@ -9,6 +9,8 @@ export const colors = {
   field: 'rgba(252, 255, 255, 0.06)',
   text: '#FCFFFF',
   textSecondary: 'rgba(252, 255, 255, 0.5)',
+  // SDK принимает для SVG только непрозрачный #RRGGBB; соответствует вторичному тексту на фоне окна.
+  iconSecondary: '#858585',
   accent: '#00EAFF',
   // Выделенная строка списка выбора — бирюзовый на поверхности
   accentSoft: 'rgba(0, 234, 255, 0.12)',
