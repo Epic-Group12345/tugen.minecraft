@@ -1,4 +1,4 @@
-import type { GameHost } from '@tugen/sdk';
+import type { TugenHost } from '@tugen/sdk';
 import { MANIFEST_CACHE } from './paths';
 import type { McVersion } from './types';
 
@@ -86,7 +86,7 @@ export class VersionCatalog {
   private manifest: Manifest | null = null;
   private pending: Promise<Manifest> | null = null;
 
-  constructor(private host: GameHost) {}
+  constructor(private host: TugenHost) {}
 
   load(): Promise<Manifest> {
     if (this.manifest) {

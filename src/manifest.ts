@@ -1,10 +1,11 @@
-import type { GameManifest } from '@tugen/sdk';
+import type { AppManifest } from '@tugen/sdk';
 
 // Разделы — сервисы издателя. Боковой панели в новом лаунчере нет, поэтому строку разделов рисует
 // само мини-приложение (нижний остров, src/ui/island.tsx); лаунчер лишь помнит открытый раздел и передаёт его в App
 // пропом section. Иконки разделов оставлены для лаунчеров, которые их показывают (старый интерфейс)
 export const manifest = {
   id: 'minecraft',
+  kind: 'game',
   name: 'Minecraft',
   version: '0.1.0',
   // Иконка Gravity UI для карточки и островов лаунчера
@@ -26,4 +27,4 @@ export const manifest = {
       icon: 'Gear',
     },
   ],
-} as const satisfies GameManifest;
+} as const satisfies AppManifest;

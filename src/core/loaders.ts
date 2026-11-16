@@ -1,4 +1,4 @@
-import type { GameHost } from '@tugen/sdk';
+import type { TugenHost } from '@tugen/sdk';
 import { inForgeRange } from './builds';
 import { libraryPath, versionJson } from './paths';
 import type { ModLoader } from './types';
@@ -30,7 +30,7 @@ const isUnknownVersion = (e: unknown) =>
   e instanceof Error && /HTTP 40[04]\b/.test(e.message);
 
 async function metaVersions(
-  host: GameHost,
+  host: TugenHost,
   kind: 'fabric' | 'quilt',
   game: string,
 ): Promise<MetaLoaderEntry[]> {
@@ -59,7 +59,7 @@ export function forgeVersionsFrom(metadata: string, game: string): string[] {
 
 /** Версии загрузчика под версию игры, от новых к старым; пусто — под эту версию его нет */
 export async function loaderVersions(
-  host: GameHost,
+  host: TugenHost,
   loader: ModLoader,
   game: string,
 ): Promise<string[]> {
@@ -78,7 +78,7 @@ export async function loaderVersions(
  * (нет рекомендованного — последний). null — под эту версию игры загрузчика нет
  */
 export async function latestLoaderVersion(
-  host: GameHost,
+  host: TugenHost,
   loader: ModLoader,
   game: string,
 ): Promise<string | null> {
@@ -131,7 +131,7 @@ export function launchVersionId(
 
 /** Описание версии загрузчика — в versions/: скачать или достать из установщика, если его нет */
 export async function ensureLoaderVersion(
-  host: GameHost,
+  host: TugenHost,
   game: string,
   loader: ModLoader,
   version: string,
@@ -207,7 +207,7 @@ export function forgeVersionFrom(
 
 /** Forge из установщика: скачать, распаковать, взять описание версии и файлы, которых нет в Maven */
 async function installForge(
-  host: GameHost,
+  host: TugenHost,
   id: string,
   game: string,
   version: string,

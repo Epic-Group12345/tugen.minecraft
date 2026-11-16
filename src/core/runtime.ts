@@ -1,4 +1,4 @@
-import type { GameHost } from '@tugen/sdk';
+import type { TugenHost } from '@tugen/sdk';
 import { LogParser, type LogLine } from './logs';
 import { isValidNickname } from './settings';
 import {
@@ -50,7 +50,7 @@ export const appendLines = (
 const texts = (lines: Omit<LogLine, 'key'>[]) => lines.map(l => l.text);
 
 export interface RuntimeDeps {
-  host: GameHost;
+  host: TugenHost;
   context: Omit<PrepareContext, 'onStage' | 'onProgress' | 'onLoaderVersion'>;
   findBuild: (id: string) => Build | undefined;
   updateBuild: (id: string, patch: Partial<Omit<Build, 'id'>>) => void;
