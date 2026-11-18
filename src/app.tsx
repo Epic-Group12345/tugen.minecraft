@@ -1,4 +1,4 @@
-import { localize, useHost, useSafeArea, type GameAppProps } from '@tugen/sdk';
+import { localize, useHost, useSafeArea, type AppProps } from '@tugen/sdk';
 import { useState, type ReactNode } from 'react';
 import { ScrollView, StyleSheet, View } from 'react-native';
 import { CoreProvider } from './core/react';
@@ -19,7 +19,7 @@ const CONTENT_MAX_WIDTH = 880;
 // Корень мини-приложения. Лаунчер рисует нас на всё окно, а сверху кладёт свои острова; их место
 // приходит Safe Area — отступаем от неё. Низ окна наш: там нижний остров с разделами игры.
 // Открытый раздел хранит лаунчер (помнит последний), мы лишь просим его сменить через navigation
-export function App(props: GameAppProps) {
+export function App(props: AppProps) {
   return (
     <CoreProvider>
       <Shell {...props} />
@@ -27,7 +27,7 @@ export function App(props: GameAppProps) {
   );
 }
 
-function Shell({ section, width, height }: GameAppProps) {
+function Shell({ section, width, height }: AppProps) {
   const host = useHost();
   const safeArea = useSafeArea();
   const locale = host.system.locale;

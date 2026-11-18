@@ -1,4 +1,4 @@
-import type { DownloadFile, GameHost } from '@tugen/sdk';
+import type { DownloadFile, TugenHost } from '@tugen/sdk';
 import type { GamePlatform } from './platform';
 
 // Java от Mojang: та же, что ставит официальный лаунчер. Каждой версии игры нужен свой компонент
@@ -52,13 +52,13 @@ export interface JavaPlan {
   executables: string[];
 }
 
-const installed = (host: GameHost, component: string, platform: GamePlatform) =>
+const installed = (host: TugenHost, component: string, platform: GamePlatform) =>
   host.files.exists(marker(component)) &&
   host.files.exists(javaPath(component, platform));
 
 /** Что скачать для компонента; null — он уже целиком на диске */
 export async function javaFiles(
-  host: GameHost,
+  host: TugenHost,
   wanted: string,
   platform: GamePlatform,
 ): Promise<JavaPlan | null> {
@@ -96,7 +96,7 @@ export async function javaFiles(
  * Компонент скачан целиком — дать право на запуск (на Windows его нет, и SDK это знает) и
  * запомнить, чтобы следующий запуск не проверял его по сети
  */
-export async function markJava(host: GameHost, plan: JavaPlan): Promise<void> {
+export async function markJava(host: TugenHost, plan: JavaPlan): Promise<void> {
   if (plan.executables.length) {
     await host.files.markExecutable(plan.executables);
   }

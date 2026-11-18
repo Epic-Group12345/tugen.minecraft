@@ -1,4 +1,4 @@
-import type { DownloadFile, DownloadProgress, GameHost } from '@tugen/sdk';
+import type { DownloadFile, DownloadProgress, TugenHost } from '@tugen/sdk';
 import { javaFiles, javaPath, markJava, type JavaPlan } from './java';
 import { launchArgs, launchFeatures } from './launch-args';
 import { ensureLoaderVersion, latestLoaderVersion } from './loaders';
@@ -47,7 +47,7 @@ export interface LaunchPlan {
 export type PrepareStage = 'preparing' | 'downloading' | 'starting';
 
 export interface PrepareContext {
-  host: GameHost;
+  host: TugenHost;
   platform: GamePlatform;
   versions: VersionCatalog;
   launcherVersion: string;
@@ -73,7 +73,7 @@ async function step<T>(code: LaunchErrorCode, run: () => Promise<T>) {
   }
 }
 
-function readJson<T>(host: GameHost, path: string): T {
+function readJson<T>(host: TugenHost, path: string): T {
   const text = host.files.readText(path);
   if (!text) {
     throw new LaunchError('files', path);

@@ -1,4 +1,4 @@
-import type { GameHost } from '@tugen/sdk';
+import type { TugenHost } from '@tugen/sdk';
 import { buildRoot } from './paths';
 import type { Build, Loader } from './types';
 import { compareGameVersions } from './version';
@@ -147,7 +147,7 @@ export class BuildRepo {
   mainId: string | null;
   private copying = new Set<string>();
 
-  constructor(private host: GameHost, private onChange: () => void) {
+  constructor(private host: TugenHost, private onChange: () => void) {
     this.builds = parseBuilds(host.storage.get<unknown>(BUILDS_KEY, []));
     this.mainId = this.pickMain(host.storage.get<unknown>(MAIN_KEY, null));
   }

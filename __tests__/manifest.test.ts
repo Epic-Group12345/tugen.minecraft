@@ -1,9 +1,9 @@
-import { defineGame } from '@tugen/sdk';
+import { defineApp } from '@tugen/sdk';
 import { GRAVITY_ICONS } from '../src/ui/gravity-icons';
 import { manifest } from '../src/manifest';
 
 it('манифест проходит проверку SDK', () => {
-  expect(() => defineGame({ manifest, App: () => null })).not.toThrow();
+  expect(() => defineApp({ manifest, App: () => null })).not.toThrow();
 });
 
 it('иконка и способ показа — для нового лаунчера', () => {

@@ -1,19 +1,12 @@
-import type { GameHost, LaunchOptions } from '@tugen/sdk';
-import {
-  createMinecraft,
-  parseServerPage,
-  serverPageUrl,
-} from '../src/core';
+import type { TugenHost, LaunchOptions } from '@tugen/sdk';
+import { createMinecraft, parseServerPage, serverPageUrl } from '../src/core';
 import { MANIFEST_CACHE, versionJson } from '../src/core/paths';
-import {
-  categoryTitle,
-  serverMetaTitle,
-} from '../src/sections/server-catalog';
+import { categoryTitle, serverMetaTitle } from '../src/sections/server-catalog';
 
-// Ядро целиком поверх GameHost в памяти: файлы — словарь, сеть — таблица ответов, процессы —
+// Ядро целиком поверх TugenHost в памяти: файлы — словарь, сеть — таблица ответов, процессы —
 // записанные вызовы. Так проверяется хранилище сборок, кэш версий и ход запуска без лаунчера
 
-interface FakeHost extends GameHost {
+interface FakeHost extends TugenHost {
   fs: Map<string, string>;
   store: Map<string, unknown>;
   responses: Map<string, string | Error>;
@@ -53,6 +46,47 @@ function fakeHost(init: { running?: string[] } = {}): FakeHost {
     alive,
     openedFolders,
     navigation: { open: () => {}, exit: () => {} },
+    apps: { list: () => [], open: () => {} },
+    lifecycle: {
+      ready: () => {},
+      close: () => {},
+      setClosingConfirmation: () => {},
+      closingConfirmation: () => false,
+    },
+    theme: { scheme: () => 'light', subscribe: () => () => {} },
+    viewport: {
+      size: () => ({ width: 0, height: 0 }),
+      safeArea: () => ({ top: 0, right: 0, bottom: 0, left: 0 }),
+      subscribe: () => () => {},
+    },
+    ui: {
+      mainButton: {
+        set: () => {},
+        state: () => ({
+          text: '',
+          visible: false,
+          enabled: true,
+          progress: false,
+        }),
+        onClick: () => () => {},
+      },
+      backButton: {
+        show: () => {},
+        hide: () => {},
+        visible: () => false,
+        onClick: () => () => {},
+      },
+      popups: {
+        popup: async () => null,
+        alert: async () => {},
+        confirm: async () => false,
+      },
+      haptics: { impact: () => false, notice: () => false },
+    },
+    links: { open: async () => false },
+    clipboard: { readText: async () => '', writeText: async () => false },
+    camera: { requestAccess: async () => false, snapshot: async () => null },
+    microphone: { requestAccess: async () => false, record: async () => null },
     files: {
       exists: p => fs.has(p) || [...fs.keys()].some(k => k.startsWith(`${p}/`)),
       readText: p => fs.get(p) ?? null,
@@ -370,9 +404,9 @@ describe('сборки', () => {
     });
     const launch = core.launch(build.id);
 
-    await expect(
-      core.duplicateBuild(build.id, 'Копия'),
-    ).rejects.toMatchObject({ code: 'running' });
+    await expect(core.duplicateBuild(build.id, 'Копия')).rejects.toMatchObject({
+      code: 'running',
+    });
     await launch;
     expect(core.listBuilds()).toHaveLength(1);
   });

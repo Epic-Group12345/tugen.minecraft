@@ -1,4 +1,4 @@
-import type { GameHost } from '@tugen/sdk';
+import type { TugenHost } from '@tugen/sdk';
 import { manifest } from '../manifest';
 import { BuildError, BuildRepo } from './builds';
 import { loaderVersions } from './loaders';
@@ -15,7 +15,7 @@ import {
 } from './settings';
 import type { Build, MinecraftCore } from './types';
 
-// Ядро Minecraft: настройки, сборки, версии и запуск поверх GameHost из @tugen/sdk. Ничего из
+// Ядро Minecraft: настройки, сборки, версии и запуск поверх TugenHost из @tugen/sdk. Ничего из
 // лаунчера, нативных модулей и fetch — только host: так мини-приложение работает и в песочнице.
 // UI подписывается через subscribe (react.tsx); снимки (настройки, список сборок, состояние
 // запуска) — стабильные ссылки до следующего изменения, иначе useSyncExternalStore зациклится
@@ -47,7 +47,7 @@ export type {
   ServerFilters,
 } from './servers';
 
-export function createMinecraft(host: GameHost): MinecraftCore {
+export function createMinecraft(host: TugenHost): MinecraftCore {
   const listeners = new Set<() => void>();
   const emit = () => listeners.forEach(listener => listener());
 
